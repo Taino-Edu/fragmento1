@@ -1,80 +1,151 @@
-// src/components/UI/HUD.tsx
-import { motion } from 'framer-motion';
-import { Terminal, Activity, Weight, Wind, Zap, Shield, Droplet, Ghost } from 'lucide-react';
 import { useGameStore } from '../../store/useGameStore';
+import { Heart, Shield, Zap, Activity, Scan, Footprints, Hourglass, Skull, Crosshair } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export const HUD = () => {
   const { 
-    level, playerLevel, stability, maxStability, xp, xpToNextLevel, 
-    previewCost, calculateMoveCost, agility, strength, defense,
-    invertedControls, blindMode, isVampire, isGhost 
+    stability, maxStability, playerLevel, level,
+    strength, agility, defense, shield,
+    previewCost, skills, useSkill, movePlayer, status, interactionMode, cancelAim,
+    xp, xpToNextLevel, totalKills, levelKills 
   } = useGameStore();
 
-  const predictedHp = previewCost ? (stability - previewCost) : stability;
-  const fillPercent = (stability / maxStability) * 100;
-  const xpPercent = (xp / xpToNextLevel) * 100;
-  const costPercent = previewCost ? (previewCost / maxStability) * 100 : 0;
+  if (status !== 'PLAYING') return null;
+
+  const currentHpPercent = Math.max(0, (stability / maxStability) * 100);
+  const costPercent = previewCost ? Math.min(currentHpPercent, (previewCost / maxStability) * 100) : 0;
+  const safeHpPercent = currentHpPercent - costPercent;
+  const barColor = safeHpPercent > 50 ? 'bg-punk-primary' : safeHpPercent > 20 ? 'bg-orange-500' : 'bg-red-600';
   
-  const barColor = fillPercent > 30 ? 'bg-punk-primary shadow-[0_0_10px_#fbbf24]' : 'bg-punk-accent shadow-[0_0_10px_#7c3aed]';
-  const currentMoveCost = calculateMoveCost(); // Esse mostra o custo do movimento atual (sem alvo específico)
-  const overload = Math.floor(stability * 0.05);
+  // Escudo agora pode passar de 100%, mas para a barra visual limitamos a 100
+  const shieldPercent = shield ? Math.min(100, (shield / maxStability) * 100) : 0;
+  
+  const xpPercent = Math.min(100, (xp / xpToNextLevel) * 100);
 
   return (
-    <div className="flex flex-col items-center w-full max-w-2xl relative z-10 mb-4">
-        {/* Header / Título */}
-        <div className="mb-4 text-punk-primary text-center space-y-2 w-full max-w-md" translate="no">
-            <h1 className="text-2xl tracking-[0.2em] uppercase flex items-center justify-center gap-3 notranslate drop-shadow-[0_0_5px_rgba(251,191,36,0.5)]">
-              <Terminal size={24} />
-              Mindpunk <span className="text-punk-wall text-sm">//</span> Frag_{level.toString().padStart(2, '0')}
-            </h1>
+    <>
+      <AnimatePresence>
+        {interactionMode === 'aiming_jump' && (
+            <motion.div 
+                initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 bg-black/80 border border-purple-500 px-6 py-2 rounded shadow-[0_0_15px_#a855f7] text-purple-400 font-mono text-sm flex items-center gap-2"
+            >
+                <Zap size={14} className="animate-pulse"/> SELECIONE O DESTINO
+            </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className="w-full max-w-2xl flex flex-col gap-2 mb-4 p-4 bg-black/60 border border-punk-wall/30 backdrop-blur-md rounded-lg shadow-lg relative z-10">
+        
+        {/* Cabeçalho */}
+        <div className="flex justify-between items-end text-xs md:text-sm font-mono text-punk-wall uppercase tracking-widest mb-1">
+            <span className="text-punk-primary drop-shadow-[0_0_5px_rgba(251,191,36,0.5)]">
+                {`FRAG_0${level}`}
+            </span>
             
-            {/* Status Effects */}
-            <div className="flex justify-center flex-wrap gap-2 text-[10px] uppercase tracking-wider text-punk-accent min-h-[20px]">
-                {invertedControls && <span className="border border-punk-accent px-2 py-0.5 rounded bg-punk-accent/10 animate-pulse">CONTROLES</span>}
-                {blindMode && <span className="border border-punk-accent px-2 py-0.5 rounded bg-punk-accent/10 animate-pulse">CEGO</span>}
-                {isVampire && <span className="border border-red-600 text-red-500 px-2 py-0.5 rounded bg-red-900/20 flex items-center gap-1"><Droplet size={10}/> VAMPIRO</span>}
-                {isGhost && <span className="border border-cyan-400 text-cyan-400 px-2 py-0.5 rounded bg-cyan-900/20 flex items-center gap-1"><Ghost size={10}/> FANTASMA</span>}
-            </div>
-
-            {/* Stats Bar (HP e Custo) */}
-            <div className="flex justify-between items-end px-1 mt-2 text-xs text-punk-primary notranslate">
-                <span className={`flex items-center gap-2 ${previewCost ? 'text-red-500 font-bold' : ''}`}>
-                    <Activity size={14} />
-                    <span className="tracking-widest">HP:</span> {predictedHp}/{maxStability}
-                </span>
-
-                <div className="flex flex-col items-end">
-                  <span className="text-[10px] text-punk-accent mb-1 tracking-widest">LVL {playerLevel}</span>
-                  <div className="flex items-center gap-2">
-                      {overload > 0 && <span className="text-[10px] text-orange-500 flex items-center gap-1" title={`Sobrecarga: +${overload}`}><Weight size={10}/>+{overload}</span>}
-                      <span className={previewCost ? 'text-red-500 font-bold drop-shadow-[0_0_5px_rgba(239,68,68,0.5)]' : 'text-punk-wall'}>
-                          CUSTO: {previewCost ? `-${previewCost}` : currentMoveCost}
-                      </span>
-                  </div>
+            <div className="flex gap-4 items-center text-gray-400">
+                <div className="flex items-center gap-1" title="Kills na Fase">
+                    <Crosshair size={12} className="text-red-400" />
+                    <span>{levelKills}</span>
+                </div>
+                <div className="flex items-center gap-1" title="Kills Totais">
+                    <Skull size={12} className="text-yellow-500" />
+                    <span>{totalKills}</span>
                 </div>
             </div>
 
-            {/* Barra de Vida Visual */}
-            <div className="w-full h-3 bg-black/80 rounded-sm overflow-hidden border border-punk-wall/50 mt-1 flex relative shadow-[0_0_15px_rgba(0,0,0,0.5)]">
-                <div className="absolute inset-0 bg-[linear-gradient(90deg,transparent_20%,rgba(0,0,0,0.5)_20%)] bg-[length:5px_100%] z-20 pointer-events-none opacity-20"></div>
-                <motion.div className={`h-full ${barColor} z-10`} initial={false} animate={{ width: `${fillPercent}%` }} transition={{ type: "spring", stiffness: 100, damping: 20 }} />
-                {previewCost && <div className="h-full bg-red-600/80 animate-pulse z-0" style={{ width: `${costPercent}%` }} />}
-            </div>
-
-            {/* Barra de XP */}
-            <div className="w-full flex justify-end mt-1 mb-4">
-              <div className="w-full h-1 bg-punk-wall/30 rounded-full overflow-hidden">
-                  <motion.div className="h-full bg-punk-accent shadow-[0_0_5px_#7c3aed]" animate={{ width: `${xpPercent}%` }} />
-              </div>
-            </div>
-
-            {/* Atributos */}
-            <div className="flex justify-between gap-2 text-[10px] font-mono text-punk-wall border-t border-punk-wall/20 pt-2">
-                <div className="flex items-center gap-1" title="Agilidade"><Wind size={12} className={agility > 0 ? "text-punk-primary" : ""} /> AGI: {agility}</div>
-                <div className="flex items-center gap-1" title="Força"><Zap size={12} className={strength > 0 ? "text-punk-primary" : ""} /> STR: {strength}</div>
-                <div className="flex items-center gap-1" title="Defesa"><Shield size={12} className={defense > 0 ? "text-punk-primary" : ""} /> DEF: {defense}</div>
+            <div className="flex gap-4">
+                {previewCost !== null && (
+                   <span className="text-red-500 font-bold animate-pulse drop-shadow-[0_0_5px_rgba(239,68,68,0.8)]">
+                     CUSTO: -{previewCost}
+                   </span>
+                )}
+                <span>LVL {playerLevel}</span>
             </div>
         </div>
-    </div>
+
+        {/* CONTAINER DAS BARRAS DE STATUS */}
+        <div className="flex flex-col gap-[2px]">
+            
+            {/* 1. BARRA DE ESCUDO (Separada) */}
+            {shield > 0 && (
+                <div className="w-full h-2 bg-blue-900/20 rounded-t-sm relative overflow-hidden flex items-center">
+                     <motion.div 
+                        className="h-full bg-cyan-400 shadow-[0_0_8px_#22d3ee]"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${shieldPercent}%` }}
+                     />
+                     <span className="absolute right-1 text-[8px] text-cyan-200 font-bold tracking-widest z-10">
+                        SHIELD: {shield}
+                     </span>
+                </div>
+            )}
+
+            {/* 2. BARRA DE VIDA */}
+            <div className={`relative w-full h-4 bg-gray-900/80 border border-gray-700/50 flex overflow-hidden ${shield > 0 ? 'rounded-b-sm' : 'rounded-sm'}`}>
+                {/* Vida Segura */}
+                <motion.div className={`h-full ${barColor} shadow-[0_0_10px_currentColor]`} initial={{ width: '100%' }} animate={{ width: `${safeHpPercent}%` }} />
+                
+                {/* Dano Previsto */}
+                {previewCost !== null && previewCost > 0 && (
+                  <motion.div className="h-full bg-red-600/80" initial={{ width: 0 }} animate={{ width: `${costPercent}%`, opacity: [0.5, 1, 0.5] }} transition={{ opacity: { repeat: Infinity, duration: 0.5 } }} />
+                )}
+                
+                <div className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white/90 tracking-wider z-20 gap-2 drop-shadow-md">
+                    <Heart size={10} className="fill-current text-red-500" /> 
+                    {stability} / {maxStability} 
+                </div>
+            </div>
+            
+            {/* 3. BARRA DE XP */}
+            <div className="w-full h-1 bg-gray-900 rounded-full mt-1 relative overflow-hidden">
+                <motion.div className="h-full bg-yellow-500 shadow-[0_0_5px_#fbbf24]" initial={{ width: 0 }} animate={{ width: `${xpPercent}%` }} transition={{ type: "tween", ease: "easeOut", duration: 0.5 }} />
+            </div>
+
+        </div>
+
+        {/* Atributos */}
+        <div className="flex justify-between items-center text-[10px] text-gray-500 font-mono mt-1">
+            <div className="flex gap-3">
+                <span className="flex items-center gap-1"><Footprints size={10} /> AGI: {agility}</span>
+                <span className="flex items-center gap-1"><Activity size={10} /> STR: {strength}</span>
+                <span className="flex items-center gap-1"><Shield size={10} /> DEF: {defense}</span>
+            </div>
+            <span className="text-yellow-600/50">{Math.floor(xp)} / {xpToNextLevel} XP</span>
+        </div>
+      </div>
+
+      {/* Botões Laterais (Mantidos Iguais) */}
+      <div className="fixed right-4 top-1/2 transform -translate-y-1/2 flex flex-col gap-3 z-50 items-end">
+        <AnimatePresence>
+            {interactionMode !== 'default' && (
+                <motion.button initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 50, opacity: 0 }} onClick={cancelAim} className="group relative flex items-center justify-end">
+                    <span className="mr-2 bg-black/90 text-red-400 text-[10px] px-2 py-1 rounded border border-red-500/30">CANCELAR</span>
+                    <div className="w-10 h-10 bg-black/80 border border-red-500 text-red-400 flex items-center justify-center rounded-md hover:bg-red-900/40 cursor-pointer"><span className="text-lg font-bold">X</span></div>
+                </motion.button>
+            )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+            {skills.includes('DASH') && (
+                <motion.button initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 50, opacity: 0 }} onClick={() => useSkill('DASH')} className="group relative flex items-center justify-end">
+                    <div className={`w-10 h-10 md:w-12 md:h-12 bg-black/80 border flex items-center justify-center rounded-md transition-all cursor-pointer ${interactionMode === 'aiming_jump' ? 'border-purple-500 text-purple-400 shadow-[0_0_15px_#a855f7]' : 'border-cyan-500 text-cyan-400'}`}><Zap size={20} /></div>
+                </motion.button>
+            )}
+        </AnimatePresence>
+        
+        <AnimatePresence>
+            {skills.includes('SCAN') && (
+                <motion.button initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 50, opacity: 0 }} onClick={() => useSkill('SCAN')} className="group relative flex items-center justify-end">
+                    <div className="w-10 h-10 md:w-12 md:h-12 bg-black/80 border border-emerald-500 text-emerald-400 flex items-center justify-center rounded-md hover:bg-emerald-500/20"><Scan size={20} /></div>
+                </motion.button>
+            )}
+        </AnimatePresence>
+
+        <button onClick={() => movePlayer('WAIT')} className="group relative flex items-center justify-end mt-2">
+            <div className="w-8 h-8 md:w-10 md:h-10 bg-black/60 border border-gray-600 text-gray-500 flex items-center justify-center rounded-full hover:bg-gray-700/30"><Hourglass size={16} /></div>
+        </button>
+      </div>
+    </>
   );
 };

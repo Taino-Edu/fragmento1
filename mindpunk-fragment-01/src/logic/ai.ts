@@ -17,8 +17,8 @@ export const processEnemiesTurn = (
     grid: number[][], 
     enemies: Enemy[], 
     playerPos: Position, 
-    rows: number, 
-    cols: number
+    _rows: number, 
+    _cols: number
 ) => {
     let damageDealt = 0;
     

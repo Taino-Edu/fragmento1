@@ -1,74 +1,68 @@
-// src/types/index.ts
-
-// 1. Tipos Básicos
 export type Position = {
   x: number;
   y: number;
 };
 
-// 2. Definição dos Inimigos (NOVO)
-export type EnemyType = 'drone' | 'tank' | 'runner';
+export type EnemyType = 'drone' | 'tank' | 'runner' | 'generator';
 
 export interface Enemy {
-  id: string;        // Identidade única (para saber qual inimigo tomou dano)
+  id: string;
   type: EnemyType;
   pos: Position;
   hp: number;
   maxHp: number;
-  damage: number;    // Quanto ele bate
-  xpValue: number;   // Quanto XP dá
+  damage: number;
+  xpValue: number;
+  spawnCooldown?: number;
 }
 
-export type Grid = number[][];
+export type PlayerSkill = 'DASH' | 'SCAN';
 
-// 3. Interface do Estado Global (GameState)
 export interface GameState {
-  grid: Grid;
-  
-  // --- A MUDANÇA PRINCIPAL ESTÁ AQUI ---
-  enemies: Enemy[]; // Lista de inimigos vivos
-  // -------------------------------------
-
+  grid: number[][];
   rows: number;
   cols: number;
   playerPosition: Position;
+  enemies: Enemy[];
   
-  // Status do Jogo
-  status: 'PLAYING' | 'WON' | 'GAME_OVER' | 'SELECTING_UPGRADE';
-  level: number;
-  
-  // Stats do Player
-  stability: number;
-  maxStability: number;
+  // Progressão
+  level: number; // Número da Fase (Fragmento)
   xp: number;
   xpToNextLevel: number;
-  playerLevel: number;
+  playerLevel: number; // Nível do Personagem (RPG)
   
-  // Atributos de RPG
+  // ESTATÍSTICAS DE MATANÇA (NOVO)
+  totalKills: number;      // Kills Totais (Run inteira)
+  levelKills: number;      // Kills nesta fase atual
+  
+  // Status
+  stability: number;
+  maxStability: number;
+  shield: number;
+  
+  // Atributos
   agility: number;
   strength: number;
   defense: number;
+  
+  // Multiplicadores
   xpMultiplier: number;
   moveCostReduction: number;
   damageMultiplier: number;
 
-  // Flags Especiais
+  status: 'PLAYING' | 'WON' | 'GAME_OVER' | 'SELECTING_UPGRADE';
+  
+  // Configs
   invertedControls: boolean;
   blindMode: boolean;
   isVampire: boolean;
   isGhost: boolean;
-
-  // Interface de UI
   tacticalMode: boolean;
   previewCost: number | null;
-  currentOptions: any[]; 
+  
+  skills: PlayerSkill[];
+  attackRange: number;
+  weaponName: string;
 
-  // Ações
-  movePlayer: (directionOrTarget: 'UP' | 'DOWN' | 'LEFT' | 'RIGHT' | 'WAIT' | Position) => void;
-  toggleTacticalMode: () => void;
-  setPreviewCost: (cost: number | null) => void;
-  nextLevel: () => void;
-  selectCorruption: (option: any) => void;
-  resetGame: () => void;
-  calculateMoveCost: () => number;
+  interactionMode: 'default' | 'aiming_jump' | 'aiming_scan';
 }
