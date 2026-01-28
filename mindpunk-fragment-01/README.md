@@ -1,4 +1,4 @@
-# FRAGMENT 01 // NULL POINTER
+# FRAGMENT 01 // NULL ENTROP
 
 > "O sistema não falhou. Ele evoluiu para algo que você não consegue controlar."
 
